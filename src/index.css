@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+    --color-tsaro-indigo: #1E1B4B;
+    --color-tsaro-amber: #F59E0B;
+    --color-tsaro-earth: #7B5E3B;
+    --color-tsaro-cream: #FDF4E3;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom animations */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* Glass morphism */
+.glass {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
