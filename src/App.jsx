@@ -96,7 +96,7 @@ function App() {
           >
             <motion.div variants={fadeInUp} className="flex items-center gap-2 text-tsaro-amber mb-4 bg-tsaro-amber/10 px-4 py-2 rounded-full w-fit">
               <Shield size={18} />
-              <span className="text-sm font-semibold tracking-wider">SILENT GUARDIAN</span>
+              <span className="text-sm font-semibold tracking-wider">THE SILENT GUARDIAN</span>
             </motion.div>
             
             <motion.h2 variants={fadeInUp} className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
