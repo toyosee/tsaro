@@ -112,18 +112,18 @@ function App() {
             {/* Stats Row */}
             <motion.div variants={fadeInUp} className="flex gap-8 mb-8">
               <div className="text-center">
-                <div className="text-3xl font-bold">2,000+</div>
-                <div className="text-sm text-gray-300">Incidents monthly</div>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold">2,000+</div>
+                <div className="text-xs sm:text-sm text-gray-300">Incidents monthly</div>
               </div>
               <div className="w-px h-10 bg-white/20"></div>
               <div className="text-center">
-                <div className="text-3xl font-bold">₦200k+</div>
-                <div className="text-sm text-gray-300">Average ransom</div>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold">₦200k+</div>
+                <div className="text-xs sm:text-sm text-gray-300">Average ransom</div>
               </div>
               <div className="w-px h-10 bg-white/20"></div>
               <div className="text-center">
-                <div className="text-3xl font-bold">3-5s</div>
-                <div className="text-sm text-gray-300">To react</div>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold">3-5s</div>
+                <div className="text-xs sm:text-sm text-gray-300">To react</div>
               </div>
             </motion.div>
 
@@ -182,7 +182,7 @@ function App() {
             )}
             
             <motion.p variants={fadeInUp} className="text-sm text-gray-300 mt-6 flex items-center gap-1">
-              <span className="text-xl">🇳🇬</span> Built in Nigeria, for Nigerians. First in Lagos.
+              <span className="text-xl">🇳🇬</span> Built in Nigeria, for Nigerians.
             </motion.p>
           </motion.div>
         </div>
@@ -208,8 +208,12 @@ function App() {
               One Chance happens in <span className="text-tsaro-amber">seconds</span>.
             </motion.h3>
             <motion.p variants={fadeInUp} className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Most safety apps fail because they require you to press a button. 
-              <span className="block font-semibold text-tsaro-indigo mt-2">When a gun is to your head, you can't.</span>
+          <p>
+            Most safety apps fail because they require you to press a button or launch an app. 
+            <span className="block font-semibold text-tsaro-indigo mt-2">
+              In a life‑threatening moment, you don’t get that chance.
+            </span>
+          </p>
             </motion.p>
           </motion.div>
           
@@ -267,7 +271,7 @@ function App() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: <Eye size={32} />, title: "Silent Monitoring", desc: "Tsaro watches in the background. You forget it's there." },
-              { icon: <Bell size={32} />, title: "Automatic Detection", desc: "Route deviation triggers a 60-second countdown." },
+              { icon: <Bell size={32} />, title: "Automatic Detection", desc: "Route deviation or threat words recognition triggers a 60-second countdown." },
               { icon: <Users size={32} />, title: "Instant Alert", desc: "No response? Your emergency contact gets your location." }
             ].map((item, index) => (
               <motion.div
@@ -431,7 +435,7 @@ function App() {
             <span>Port Harcourt</span>
           </div>
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Barterverse Technologies Ltd. Built in Nigeria. <span className="text-xl">🇳🇬</span>
+            © {new Date().getFullYear()} Barterverse Technologies Ltd. <span className="text-xl">🇳🇬</span>
           </p>
         </div>
       </footer>
