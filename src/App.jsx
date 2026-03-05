@@ -105,8 +105,12 @@ function App() {
             </motion.h2>
             
             <motion.p variants={fadeInUp} className="text-xl md:text-2xl mb-8 text-gray-200 leading-relaxed">
-              Tsaro detects emergencies automatically, build a mesh with other users and alerts your loved ones.
-              <span className="text-tsaro-amber block mt-2 font-semibold">No button to press. No panic. No delay.</span>
+              <p>
+                Tsaro detects emergencies instantly, creates a safety mesh with people around you, and notifies your loved ones. 
+                <span className="text-tsaro-amber block mt-2 font-semibold">
+                  No button. No hesitation. No wasted time.
+                </span>
+              </p>
             </motion.p>
 
             {/* Stats Row */}
