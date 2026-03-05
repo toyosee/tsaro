@@ -224,7 +224,7 @@ function App() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { value: "3-5", label: "Seconds to react", desc: "Before your phone is gone", color: "red" },
-              { value: "15-30", label: "Minutes for police", desc: "Too late for active kidnapping", color: "red" },
+              { value: "20+", label: "Minutes for police", desc: "Too late for active kidnapping", color: "red" },
               { value: "₦200k+", label: "Average ransom", desc: "Plus trauma that lasts", color: "red" }
             ].map((item, index) => (
               <motion.div
