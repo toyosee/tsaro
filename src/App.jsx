@@ -49,7 +49,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[--color-tsaro-cream]">
+    <div className="min-h-screen bg-tsaro-cream">
       {/* Header */}
       <motion.header 
         initial={{ y: -100 }}
@@ -105,7 +105,7 @@ function App() {
             </motion.h2>
             
             <motion.p variants={fadeInUp} className="text-xl md:text-2xl mb-8 text-gray-200 leading-relaxed">
-              Tsaro detects emergencies automatically and alerts your loved ones.
+              Tsaro detects emergencies automatically, build a mesh with other users and alerts your loved ones.
               <span className="text-tsaro-amber block mt-2 font-semibold">No button to press. No panic. No delay.</span>
             </motion.p>
 
@@ -122,7 +122,7 @@ function App() {
               </div>
               <div className="w-px h-10 bg-white/20"></div>
               <div className="text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold">3-5s</div>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold">{ "<"}5s</div>
                 <div className="text-xs sm:text-sm text-gray-300">To react</div>
               </div>
             </motion.div>
