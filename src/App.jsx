@@ -157,7 +157,7 @@ function App() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-5 py-4 rounded-xl text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[--color-tsaro-amber] shadow-lg"
+                    className="w-full px-5 py-4 rounded-xl text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-tsaro-amber] shadow-lg"
                   />
                 </div>
                 <motion.button
