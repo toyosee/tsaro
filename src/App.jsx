@@ -128,7 +128,9 @@ function App() {
                 {!submitted ? (
                   <>
                     <div className="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <ShieldCheck className="text-[#FF9F1C]" size={32} />
+                      {/* <ShieldCheck className="text-[#FF9F1C]" size={32} /> */}
+                      {/* Properly add the logo exactly below the shild icon*/}
+                      <img src="/tsaro_logo.png" alt="Tsaro Logo" className="w-30 h-10 mx-auto mt-2" />
                     </div>
                     <h3 className="text-3xl font-black text-[#1B1B3A] mb-3 tracking-tight">Join the Waitlist</h3>
                     <p className="text-slate-600 mb-8 leading-relaxed text-sm">Be the first to know when the silent guardian launches in your city.</p>
