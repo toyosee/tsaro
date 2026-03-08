@@ -1,501 +1,341 @@
 import React, { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
-import { Shield, Eye, Users,MapPin, Bell, Smartphone, ChevronRight, ArrowRight,AlertTriangle, CheckCircle, Heart } from 'lucide-react';
-import { Client, Databases, ID } from 'appwrite';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Shield, Eye, Users, MapPin, Bell, Smartphone, 
+  ChevronRight, ArrowRight, AlertTriangle, CheckCircle, 
+  Heart, X, Loader2, ShieldCheck 
+} from 'lucide-react';
+import { Client, Databases, ID, Query } from 'appwrite';
 
-// Initialize Appwrite
+// --- APPWRITE CONFIG ---
 const client = new Client()
   .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
   .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
 
 const databases = new Databases(client);
 
+// --- ANIMATION VARIANTS ---
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
 function App() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
 
+  // 1. Popup Triggers: Exit Intent & 30s Timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!submitted) setShowPopup(true);
+    }, 30000);
+
+    const handleExitIntent = (e) => {
+      if (e.clientY <= 0 && !submitted) setShowPopup(true);
+    };
+
+    document.addEventListener('mouseleave', handleExitIntent);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mouseleave', handleExitIntent);
+    };
+  }, [submitted]);
+
+  // 2. Open Modal Utility (Resets state for a clean experience)
+  const openModal = () => {
+    setError('');
+    setSubmitted(false);
+    setEmail('');
+    setShowPopup(true);
+  };
+
+  // 3. Submission Handler
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
+      // Check for existing email to avoid raw 409 errors
+      const existing = await databases.listDocuments(
+        import.meta.env.VITE_APPWRITE_DATABASE_ID,
+        import.meta.env.VITE_APPWRITE_COLLECTION_ID,
+        [Query.equal('email', email.toLowerCase().trim())]
+      );
+
+      if (existing.total > 0) {
+        setError('You are already on the waitlist! We will be in touch.');
+        setLoading(false);
+        return;
+      }
+
       await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID,
         import.meta.env.VITE_APPWRITE_COLLECTION_ID,
         ID.unique(),
         { 
-          email,
+          email: email.toLowerCase().trim(),
           source: 'landing-page',
           timestamp: new Date().toISOString()
         }
       );
       setSubmitted(true);
-    } catch (error) {
-      console.error('Error submitting email:', error);
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      console.error('Error submitting email:', err);
+      setError('Something went wrong. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Animation variants
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className="min-h-screen bg-tsaro-cream">
-      {/* Header */}
-      <motion.header 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-tsaro-indigo text-white py-4 px-6 sticky top-0 z-50 shadow-lg"
-      >
+    <div className="min-h-screen bg-[#FDFCF8] text-slate-900 overflow-x-hidden font-sans">
+      
+      {/* --- THE POPUP MODAL --- */}
+      <AnimatePresence>
+        {showPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowPopup(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-md w-full relative z-10 shadow-2xl border border-slate-100"
+            >
+              <button onClick={() => setShowPopup(false)} className="absolute top-6 right-6 text-slate-400 hover:text-indigo-900 transition-colors">
+                <X size={24} />
+              </button>
+
+              <div className="text-center">
+                {!submitted ? (
+                  <>
+                    <div className="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <ShieldCheck className="text-[#FF9F1C]" size={32} />
+                    </div>
+                    <h3 className="text-3xl font-black text-[#1B1B3A] mb-3 tracking-tight">Join the Waitlist</h3>
+                    <p className="text-slate-600 mb-8 leading-relaxed text-sm">Be the first to know when the silent guardian launches in your city.</p>
+                    
+                    {error && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-xs font-semibold">
+                        <AlertTriangle size={14} className="shrink-0" /> {error}
+                      </motion.div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <input
+                        type="email" placeholder="Enter your email" value={email}
+                        onChange={(e) => setEmail(e.target.value)} required
+                        className="w-full px-6 py-4 border border-slate-100 bg-slate-50 rounded-xl focus:ring-2 focus:ring-[#FF9F1C] outline-none transition-all"
+                      />
+                      <button disabled={loading} className="w-full bg-[#1B1B3A] text-white py-4 rounded-xl font-bold hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : 'Secure My Spot'} <ArrowRight size={18} />
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="py-4">
+                    <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle className="text-emerald-600" size={32} />
+                    </div>
+                    <h3 className="text-3xl font-black text-[#1B1B3A] mb-2">You're In!!!</h3>
+                    <p className="text-slate-500 mb-8 text-sm">We've added you to the priority list. Watch your inbox closely.</p>
+                    <button onClick={() => setShowPopup(false)} className="w-full bg-slate-100 text-slate-600 py-4 rounded-xl font-bold hover:bg-slate-200 transition-all">
+                      Close
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- HEADER  --- */}
+      <header className="bg-[#1B1B3A] text-white py-5 px-6 sticky top-0 z-50 shadow-lg">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <motion.h1 
-            whileHover={{ scale: 1.02 }}
-            className="text-2xl font-bold tracking-tight"
-          >
-            TSARO
-          </motion.h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm opacity-75 hidden sm:block">Lagos • Abuja • PH</span>
-            <span className="text-sm bg-tsaro-amber px-4 py-1.5 rounded-full font-medium shadow-lg">
-              Coming Soon
-            </span>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-tsaro-indigo to-tsaro-indigo/95 text-white relative overflow-hidden">
-        {/* Abstract background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-tsaro-amber rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 relative z-10">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.15 }
-              }
-            }}
-            className="max-w-3xl"
-          >
-            <motion.div variants={fadeInUp} className="flex items-center gap-2 text-tsaro-amber mb-4 bg-tsaro-amber/10 px-4 py-2 rounded-full w-fit">
-              <Shield size={18} />
-              <span className="text-sm font-semibold tracking-wider">THE SILENT GUARDIAN</span>
-            </motion.div>
-            
-            <motion.h2 variants={fadeInUp} className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Security that works
-              <span className="text-tsaro-amber block">when you can't.</span>
-            </motion.h2>
-            
-            <motion.p variants={fadeInUp} className="text-xl md:text-2xl mb-8 text-gray-200 leading-relaxed">
-              <p>
-                Tsaro detects emergencies instantly, creates a safety mesh with people around you, and notifies your loved ones. 
-                <span className="text-tsaro-amber block mt-2 font-semibold">
-                  No button. No hesitation. No wasted time.
-                </span>
-              </p>
-            </motion.p>
-
-            {/* Stats Row */}
-            <motion.div variants={fadeInUp} className="flex gap-8 mb-8">
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold">2,000+</div>
-                <div className="text-xs sm:text-sm text-gray-300">Incidents monthly</div>
-              </div>
-              <div className="w-px h-10 bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold">₦200k+</div>
-                <div className="text-xs sm:text-sm text-gray-300">Average ransom</div>
-              </div>
-              <div className="w-px h-10 bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold">{ "<"}5s</div>
-                <div className="text-xs sm:text-sm text-gray-300">To react</div>
-              </div>
-            </motion.div>
-
-            {/* Error message */}
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-500/20 border border-red-400 text-white p-4 rounded-xl text-sm mb-4 backdrop-blur flex items-center gap-2"
-              >
-                <AlertTriangle size={18} />
-                {error}
-              </motion.div>
-            )}
-            
-            {/* Waitlist Form */}
-            {!submitted ? (
-              <motion.form 
-                variants={fadeInUp}
-                onSubmit={handleSubmit} 
-                className="flex flex-col sm:flex-row gap-4 max-w-xl"
-              >
-                <div className="flex-1 relative">
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-5 py-4 rounded-xl text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-tsaro-amber] shadow-lg"
-                  />
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={loading}
-                  className="bg-tsaro-amber hover:bg-amber-600 text-white font-semibold px-8 py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 whitespace-nowrap"
-                >
-                  {loading ? 'Joining...' : 'Join Waitlist'}
-                  <ArrowRight size={18} />
-                </motion.button>
-              </motion.form>
-            ) : (
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-green-500/20 border border-green-400 text-white p-5 rounded-xl max-w-md backdrop-blur flex items-start gap-3"
-              >
-                <CheckCircle className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
-                <div>
-                  <p className="font-semibold text-lg">You're on the list!</p>
-                  <p className="text-sm opacity-90">We'll notify you when Tsaro launches.</p>
-                </div>
-              </motion.div>
-            )}
-            
-            <motion.p variants={fadeInUp} className="text-sm text-gray-300 mt-6 flex items-center gap-1">
-              <span className="text-xl">🇳🇬</span> Built in Nigeria, for Nigerians.
-            </motion.p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Problem Section */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.2 }
-              }
-            }}
-            className="text-center mb-16"
-          >
-            <motion.h3 variants={fadeInUp} className="text-4xl md:text-5xl font-bold mb-4 text-tsaro-indigo">
-              One Chance happens in <span className="text-tsaro-amber">seconds</span>.
-            </motion.h3>
-            <motion.p variants={fadeInUp} className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-          <p>
-            Most safety apps fail because they require you to press a button or launch an app. 
-            <span className="block font-semibold text-tsaro-indigo mt-2">
-              In a life‑threatening moment, you don’t get that chance.
-            </span>
-          </p>
-            </motion.p>
-          </motion.div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { value: "3-5", label: "Seconds to react", desc: "Before your phone is gone", color: "red" },
-              { value: "20+", label: "Minutes for police", desc: "Too late for active kidnapping", color: "red" },
-              { value: "₦200k+", label: "Average ransom", desc: "Plus trauma that lasts", color: "red" }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-2xl text-center shadow-lg hover:shadow-xl transition-all"
-              >
-                <div className="bg-red-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 transform rotate-3 hover:rotate-0 transition-transform">
-                  <span className="text-3xl font-bold text-red-600">{item.value}</span>
-                </div>
-                <h4 className="font-bold text-xl mb-2 text-gray-800">{item.label}</h4>
-                <p className="text-gray-600">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Solution Section */}
-      <section className="py-24 px-6 bg-gradient-to-br from-tsaro-indigo to-tsaro-indigo/95 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMzAgMTBhMjAgMjAgMCAwIDEgMjAgMjAgMjAgMjAgMCAwIDEtMjAgMjAgMjAgMjAgMCAwIDEtMjAtMjAgMjAgMjAgMCAwIDEgMjAtMjB6IiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9zdmc+')] opacity-20"></div>
-        </div>
-        
-        <div className="max-w-6xl mx-auto relative z-10">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.2 }
-              }
-            }}
-            className="text-center mb-16"
-          >
-            <motion.h3 variants={fadeInUp} className="text-4xl md:text-5xl font-bold mb-4">
-              Tsaro works <span className="text-tsaro-amber">differently</span>.
-            </motion.h3>
-          </motion.div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: <Eye size={32} />, title: "Silent Monitoring", desc: "Tsaro watches in the background. You forget it's there." },
-              { icon: <Bell size={32} />, title: "Automatic Detection", desc: "Route deviation or threat words recognition triggers a 60-second countdown." },
-              { icon: <Users size={32} />, title: "Instant Alert", desc: "No response? Your emergency contact gets your location." }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                whileHover={{ y: -5 }}
-                className="bg-white/5 backdrop-blur-sm p-8 rounded-2xl text-center border border-white/10 hover:bg-white/10 transition-all"
-              >
-                <div className="bg-tsaro-amber/20 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 relative">
-                  <div className="absolute -top-2 -right-2 bg-tsaro-amber text-white w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shadow-lg">
-                    {index + 1}
-                  </div>
-                  <div className="text-tsaro-amber">
-                    {item.icon}
-                  </div>
-                </div>
-                <h4 className="font-bold text-xl mb-2">{item.title}</h4>
-                <p className="text-gray-300 leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="mt-16 text-center"
-          >
-            <div className="bg-tsaro-amber/10 border border-tsaro-amber/30 p-6 rounded-2xl inline-block">
-              <p className="text-2xl font-semibold text-tsaro-amber">
-                No button to press. No panic. No delay.
-              </p>
+          <h1 className="text-2xl font-black tracking-tighter">TSARO</h1>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 text-xs font-bold opacity-60 uppercase tracking-widest">
+              <MapPin size={14} className="text-[#FF9F1C]" />
+              <span>Lagos • Abuja • Port Harcourt</span>
             </div>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={openModal}
+              className="text-xs bg-[#FF9F1C] text-[#1B1B3A] px-6 py-2.5 rounded-full font-black uppercase tracking-widest shadow-lg shadow-orange-500/20"
+            >
+              Join Waitlist
+            </motion.button>
+          </div>
+        </div>
+      </header>
+
+      {/* --- HERO SECTION --- */}
+      <section className="bg-[#1B1B3A] text-white py-24 px-6 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto relative z-10">
+          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
+            <motion.div variants={fadeInUp} className="text-[#FF9F1C] font-black tracking-widest text-xs mb-6 bg-[#FF9F1C]/10 w-fit px-4 py-2 rounded-full border border-[#FF9F1C]/20 flex items-center gap-2">
+              <Shield size={14} /> THE SILENT GUARDIAN
+            </motion.div>
+            <motion.h2 variants={fadeInUp} className="text-5xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tight">
+              Security that works <span className="text-[#FF9F1C] italic block mt-2">when you can't.</span>
+            </motion.h2>
+            <motion.div variants={fadeInUp} className="text-xl md:text-2xl text-slate-300 max-w-2xl mb-12 leading-relaxed">
+              Tsaro detects emergencies instantly, creates a safety mesh with people around you, and notifies your loved ones.
+              <span className="block text-[#FF9F1C] mt-4 font-bold">No button. No hesitation. No wasted time.</span>
+            </motion.div>
+            <motion.button 
+              onClick={openModal} 
+              variants={fadeInUp} 
+              className="bg-[#FF9F1C] text-[#1B1B3A] px-12 py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-500/20 flex items-center gap-3"
+            >
+              SECURE YOUR SPOT <ArrowRight />
+            </motion.button>
           </motion.div>
         </div>
       </section>
 
-      {/* Features Preview */}
+      {/* --- STATS SECTION --- */}
       <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.2 }
-              }
-            }}
-            className="text-center mb-12"
-          >
-            <motion.h3 variants={fadeInUp} className="text-3xl md:text-4xl font-bold mb-4 text-tsaro-indigo">
-              Built for <span className="text-tsaro-amber">Nigerian roads</span>
-            </motion.h3>
-            <motion.p variants={fadeInUp} className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Tsaro understands Lagos traffic, Abuja highways, and the unique challenges of urban Nigeria.
-            </motion.p>
-          </motion.div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { icon: <Smartphone size={24} />, title: "Undetectable", desc: "No app icon. Disguised as system service. Criminals can't find it." },
-              { icon: <MapPin size={24} />, title: "Real-time tracking", desc: "Your contact sees your exact location during an emergency." },
-              { icon: <Shield size={24} />, title: "Privacy first", desc: "All processing on-device. We never see your data." },
-              { icon: <Heart size={24} />, title: "Community powered", desc: "Future mesh network turns users into witnesses." }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ x: 5 }}
-                className="flex gap-4 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-100"
-              >
-                <div className="text-tsaro-amber flex-shrink-0 bg-tsaro-amber/10 w-12 h-12 rounded-xl flex items-center justify-center">
-                  {item.icon}
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1 text-gray-800">{item.title}</h4>
-                  <p className="text-gray-600 leading-relaxed">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+        <div className="max-w-6xl mx-auto text-center mb-16">
+          <div className="text-center mb-16 px-4">
+        {/* Urgency Badge */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 text-[#E63946] font-black tracking-widest text-[10px] uppercase mb-4 bg-red-50 px-4 py-2 rounded-full border border-red-100"
+        >
+          <AlertTriangle size={14} className="animate-pulse" /> Speed is Survival
+        </motion.div>
+
+        {/* Main Header with Attention-Grabbing Red */}
+        <motion.h3 
+          variants={fadeInUp} 
+          className="text-5xl md:text-7xl font-black mb-6 text-[#1B1B3A] tracking-tighter leading-[0.95]"
+        >
+          One Chance happens in 
+          <span className="relative inline-block ml-2 text-[#E63946] italic">
+            seconds.
+            {/* Decorative underline/strike for emphasis */}
+            <motion.span 
+              initial={{ width: 0 }}
+              whileInView={{ width: '100%' }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="absolute bottom-1 left-0 h-1.5 bg-[#FF9F1C]/30 -z-10"
+            />
+          </span>
+        </motion.h3>
+
+        {/* The "Danger" Explanation */}
+        <motion.p 
+          variants={fadeInUp} 
+          className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed"
+        >
+          Traditional safety apps fails in a real crisis. By the time you reach for a 
+          <span className="text-[#E63946] font-bold"> "Panic Button,"</span> your phone is already gone, or your hands are tied. 
+          <span className="block mt-4 text-[#1B1B3A] font-black">
+            In Nigeria today, speed and swift response isn't a feature, it's survival.
+          </span>
+        </motion.p>
+      </div>
+          {/* <p className="text-slate-500 text-xl max-w-2xl mx-auto">Most safety apps fail because they require a manual trigger. In a crisis, you don't have that luxury.</p> */}
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {[
+            { v: "3-5s", l: "To React", d: "Before your phone is snatched." },
+            { v: "20mins+", l: "Police Response", d: "Too late for active kidnapping attempts." },
+            { v: "₦200k+", l: "Avg. Ransom", d: "The high price of urban insecurity." }
+          ].map((s, i) => (
+            <div key={i} className="bg-red-50 p-10 rounded-[2.5rem] border border-red-100 text-center hover:shadow-lg transition-shadow">
+              <div className="text-3xl font-black text-red-600 mb-2">{s.v}</div>
+              <div className="font-bold text-slate-800 mb-2">{s.l}</div>
+              <div className="text-sm text-slate-500">{s.d}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-tsaro-indigo to-tsaro-indigo/90 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            <Shield size={48} className="mx-auto text-tsaro-amber" />
-            <h3 className="text-3xl md:text-4xl font-bold">
-              Ready to stay safe?
+      {/* --- CORE SOLUTION --- */}
+      <section className="py-24 px-6 bg-slate-50">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-12">
+          {[
+            { i: <Eye />, t: "Undetectable", d: "Disguised as a system service. Criminals can't disable what they can't find." },
+            { i: <Bell />, t: "Auto-Detection", d: "Route deviation or threat keywords trigger an automatic alert countdown." },
+            { i: <Users />, t: "Safety Mesh", d: "Instantly alerts your trusted circle with live GPS and audio context." }
+          ].map((f, i) => (
+            <div key={i} className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all">
+              <div className="text-[#FF9F1C] mb-6">{f.i}</div>
+              <h4 className="text-2xl font-black mb-4 text-[#1B1B3A]">{f.t}</h4>
+              <p className="text-slate-500 leading-relaxed">{f.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- NIGERIAN ROADS --- */}
+      <section className="py-24 px-6 bg-white border-b border-slate-100">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <h3 className="text-4xl md:text-5xl font-black mb-6 text-[#1B1B3A] leading-[1.1]">
+              Built for <span className="text-[#FF9F1C] italic">Nigerian roads.</span>
             </h3>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Join thousands of Nigerians who'll never face danger alone.
+            <p className="text-xl text-slate-500 mb-10 leading-relaxed">
+              Tsaro understands Lagos traffic, Abuja highways, and the unique security landscape of urban Nigeria.
             </p>
-            
-            {!submitted ? (
-              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="flex-1 px-5 py-4 rounded-xl text-gray-100"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={loading}
-                  className="bg-tsaro-amber hover:bg-amber-600 text-white font-semibold px-8 py-4 rounded-xl whitespace-nowrap shadow-lg"
-                >
-                  {loading ? 'Joining...' : 'Join Waitlist'}
-                </motion.button>
-              </form>
-            ) : (
-              <div className="bg-green-500/20 text-white p-6 rounded-xl inline-block border border-green-400">
-                <CheckCircle className="inline mb-2 mr-2" size={20} />
-                <span className="text-lg font-semibold">Thanks for joining! We'll be in touch.</span>
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <Smartphone className="text-[#FF9F1C] shrink-0" />
+                <p className="text-sm font-bold text-slate-700">iOS & Android Hidden Mode</p>
               </div>
-            )}
-          </motion.div>
+              <div className="flex items-start gap-3">
+                <Heart className="text-[#FF9F1C] shrink-0" />
+                <p className="text-sm font-bold text-slate-700">Community Safety Mesh</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#1B1B3A] rounded-[3rem] p-12 text-white text-center">
+            <ShieldCheck size={60} className="mx-auto text-[#FF9F1C] mb-6" />
+            <h4 className="text-2xl font-black mb-4">Privacy First.</h4>
+            <p className="text-slate-400 mb-8">All data is processed on-device. We never see your location unless an alert is active.</p>
+            <button onClick={openModal} className="bg-[#FF9F1C] text-[#1B1B3A] px-8 py-4 rounded-xl font-black w-full">Join Thousands</button>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-tsaro-indigo text-white py-12 px-6 border-t border-white/10">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.5 }}
-            className="inline-block mb-4"
-          >
-            <Shield size={24} className="text-tsaro-amber" />
-          </motion.div>
-          <p className="text-2xl font-bold mb-2">TSARO</p>
-          <p className="text-sm text-gray-300 mb-6 max-w-md mx-auto">
-            Security that watches when you can't.
-          </p>
-          <div className="flex justify-center gap-6 mb-6 text-sm text-gray-400">
-            <span>Lagos</span>
-            <span>•</span>
-            <span>Abuja</span>
-            <span>•</span>
-            <span>Port Harcourt</span>
-          </div>
-          <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Barterverse Technologies Ltd. <span className="text-xl">🇳🇬</span>
-          </p>
-        </div>
+      <footer className="bg-[#1B1B3A] text-white py-20 px-6 text-center">
+        <Shield className="mx-auto mb-1 text-[#FF9F1C]" size={40} />
+        <strong className='mx-auto mb-4 text-[#FF9F1C]'>TSARO</strong>
+        <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.4em]">© {new Date().getFullYear()} Barterverse Technologies Ltd. 🇳🇬</p>
       </footer>
-      {/* Back to Top Button */}
+
       <BackToTop />
     </div>
   );
 }
 
-// const fadeInUp = {
-//   hidden: { opacity: 0, y: 20 },
-//   visible: { opacity: 1, y: 0 }
-// };
-
-// Back to top
-// Back to Top Button Component
 const BackToTop = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Show button when page is scrolled down
+  const [v, setV] = useState(false);
   useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.scrollY > 500) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-    };
-
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    window.addEventListener('scroll', () => setV(window.scrollY > 500));
   }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
   return (
     <motion.button
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ 
-        scale: isVisible ? 1 : 0, 
-        opacity: isVisible ? 1 : 0 
-      }}
-      transition={{ duration: 0.2 }}
-      onClick={scrollToTop}
-      className="fixed bottom-6 right-6 bg-tsaro-amber hover:bg-amber-600 text-white p-3 rounded-full shadow-lg z-50 flex items-center justify-center group"
-      aria-label="Back to top"
+      initial={{ scale: 0 }}
+      animate={{ scale: v ? 1 : 0 }}
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      className="fixed bottom-8 right-8 bg-[#FF9F1C] text-[#1B1B3A] p-4 rounded-2xl shadow-2xl z-50"
     >
-      <ChevronRight 
-        size={24} 
-        className="transform -rotate-90 group-hover:-translate-y-1 transition-transform" 
-      />
+      <ChevronRight className="-rotate-90" />
     </motion.button>
   );
 };
